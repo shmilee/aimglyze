@@ -1,0 +1,53 @@
+# 图片分析类名
+analyzer: "ZhipuAnalyzer"
+
+# AI 模型相关参数
+setting:
+  model: "glm-4.6v-flash"
+  max_tokens: 16384
+  temperature: 1.0
+  thinking: false
+  # 结构化输出参考:
+  # https://docs.bigmodel.cn/cn/guide/capabilities/struct-output
+  system_prompt: |
+    用户将提供一些图片，你作为一个专业的图片分析器，
+    任务是准确分析图片内容，确定适合图片的一些标签，并根据用户要求描述图片。
+    请严格按照以下 JSON 格式输出，不要包含任何其他文字：
+    {
+      "name": {"type": "string"},
+      "desc": {"type": "string"},
+      "tags": {
+        "type": "array",
+        "items": {"type": "string"},
+      },
+      "confidence": {"type": "number"}
+    }
+
+    注意：
+    - 确保所有字符串值中的特殊字符都被正确转义，如换行符、引号、括号等等。
+    - "name"字段是"图片的名称"
+    - "desc"字段是"图片的详细描述"
+    - "tags"字段是一些合适的图片标签。
+    - "confidence"字段表示识别的整体置信度(0-1)
+
+  user_prompt: "图片的详细描述控制在200字左右。标签至少3个，至多12个。"
+
+# 后端服务器配置
+# 相对路径, 相对于此配置文件
+server:
+  host: "127.0.0.1"
+  port: 8080
+  frontend_root: "./frontend"
+  sample_file: "./sample-msg.json"
+  save_upload: false
+  upload_dir: "./uploads"
+  max_upload_size: 10  # MB
+  allowed_extensions: [".jpg", ".jpeg", ".png", ".webp"]
+  debug: true
+
+# 前端配置
+frontend:
+  title: "图像识别分析系统"
+  subtitle: "基于AI的智能图像识别应用"
+  theme: "light"  # light 或 dark
+  show_sample_data: true

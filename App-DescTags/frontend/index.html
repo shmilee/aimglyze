@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像识别分析系统</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 300 700;
+            font-display: swap;
+            src: local('Inter'), local('Inter-Regular'), local('-apple-system'), local('BlinkMacSystemFont'), local('Segoe UI'), local('Helvetica Neue'), local('Arial');
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- PC端左侧侧边栏，移动端顶部区域 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <header>
+                    <h2 id="pageTitle"><i class="fas fa-image"></i> 图像识别分析系统</h2>
+                    <p class="subtitle" id="pageSubtitle">基于AI的智能图像识别应用</p>
+                </header>
+            </div>
+            <div class="sidebar-content">
+                <!-- 上传区域 -->
+                <div class="card">
+                    <h3><i class="fas fa-upload"></i> 上传图片进行分析</h3>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p>拖拽图片到此处，或点击选择文件</p>
+                        <p class="file-types">支持格式：JPG, PNG, WEBP</p>
+                        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp" hidden>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> 选择文件
+                        </button>
+                    </div>
+                    <div class="upload-progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressText">正在分析图片...</p>
+                    </div>
+                    <div class="action-buttons" id="actionButtons">
+                        <!-- 加载示例数据按钮将根据配置动态显示 -->
+                        <button class="btn btn-secondary" id="loadSampleBtn" style="display: none;">
+                            <i class="fas fa-file-alt"></i> 加载示例
+                        </button>
+                        <button class="btn btn-outline" onclick="clearResults()">
+                            <i class="fas fa-trash"></i> 清空结果
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- PC端页脚 -->
+            <div class="sidebar-footer">
+                <div class="footer-status">
+                    <p>
+                        <span class="status" id="connectionStatus">
+                            <i class="fas fa-circle status-icon"></i> 正在连接服务器...
+                        </span>
+                        <span class="copyright"> | © 2025 AI智能图像识别</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <!-- 右侧主内容区（PC端）或中间内容区（移动端） -->
+        <div class="main-content">
+            <div class="card">
+                <div class="results-header">
+                    <h2><i class="fas fa-chart-bar"></i> 分析结果</h2>
+                    <!-- 示例数据标记 -->
+                    <div class="sample-indicator" id="sampleIndicator" style="display: none;">
+                        <i class="fas fa-vial"></i> 示例数据
+                    </div>
+                    <div class="result-actions">
+                        <button class="btn btn-icon" onclick="toggleTheme()" title="切换主题">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="exportJSON()" title="导出JSON">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="printResults()" title="打印结果">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在分析中，请稍候...</p>
+                </div>
+                <!-- 分析结果展示区域（简化版） -->
+                <div id="resultsContainer" class="results-container">
+                    <!-- 空状态 -->
+                    <div id="emptyState" class="empty-state">
+                        <i class="fas fa-image empty-icon"></i>
+                        <p>请上传图片开始分析，或点击"加载示例"按钮查看示例结果。</p>
+                    </div>
+                    <!-- 结果内容（由JS动态生成） -->
+                    <div id="resultsContent" style="display: none;">
+                        <!-- 图片名称区域（修改为左右布局） -->
+                        <div class="result-section image-name-section">
+                            <div class="image-name-header">
+                                <h3 class="section-title"><i class="fas fa-heading"></i> 图片名称</h3>
+                                <!-- 缩略图容器 -->
+                                <div class="thumbnail-container" id="thumbnailContainer" style="display: none;">
+                                    <img class="thumbnail" id="thumbnailImage" alt="缩略图">
+                                </div>
+                            </div>
+                            <div class="section-content" id="imageName"></div>
+                        </div>
+                        <!-- 详细描述 -->
+                        <div class="result-section">
+                            <h3 class="section-title"><i class="fas fa-align-left"></i> 详细描述</h3>
+                            <div class="section-content" id="imageDesc"></div>
+                        </div>
+                        <!-- 标签 -->
+                        <div class="result-section">
+                            <h3 class="section-title"><i class="fas fa-tags"></i> 标签</h3>
+                            <div class="tags-container" id="tagsContainer"></div>
+                        </div>
+                        <!-- 文件信息（如果有） -->
+                        <div class="result-section" id="fileInfoSection" style="display: none;">
+                            <h3 class="section-title"><i class="fas fa-info-circle"></i> 文件信息</h3>
+                            <div class="file-info" id="fileInfo"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 示例数据说明 -->
+                <div class="sample-note" id="sampleNote" style="display: none;">
+                    <i class="fas fa-lightbulb"></i> 这是示例数据，实际分析结果将基于您上传的图片。
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 移动端页脚 -->
+    <div class="mobile-footer">
+        <p>
+            <span class="status" id="mobileConnectionStatus">
+                <i class="fas fa-circle status-icon"></i> 正在连接服务器...
+            </span>
+            <span class="copyright"> | © 2025 AI智能图像识别</span>
+        </p>
+    </div>
+    <!-- 全屏图片预览模态框 -->
+    <div id="imagePreviewModal" class="image-preview-modal">
+        <div class="modal-overlay" onclick="closeImagePreview()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-expand"></i> 图片预览</h3>
+                <button class="btn btn-icon close-btn" onclick="closeImagePreview()" title="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <img id="previewImage" class="preview-image" alt="预览图片">
+                <p class="preview-filename" id="previewFilename"></p>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
