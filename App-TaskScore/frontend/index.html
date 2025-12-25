@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生评价表分析系统</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 300 700;
+            font-display: swap;
+            src: local('Inter'), local('Inter-Regular'), local('-apple-system'), local('BlinkMacSystemFont'), local('Segoe UI'), local('Helvetica Neue'), local('Arial');
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- PC端左侧侧边栏，移动端顶部区域 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <header>
+                    <h2 id="pageTitle"><i class="fas fa-chart-line"></i> 学生评价表分析系统</h2>
+                    <p class="subtitle" id="pageSubtitle">基于AI的学生技能评估与分析</p>
+                </header>
+            </div>
+            <div class="sidebar-content">
+                <!-- 上传区域 -->
+                <div class="card">
+                    <h3><i class="fas fa-upload"></i> 上传评价表的清晰照片</h3>
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p>拖拽图片到此处，或点击选择文件</p>
+                        <p class="file-types">支持格式：JPG, PNG, WEBP</p>
+                        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp" hidden>
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open"></i> 选择文件
+                        </button>
+                    </div>
+                    <div class="upload-progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressText">正在分析图片...</p>
+                    </div>
+                    <div class="action-buttons" id="actionButtons">
+                        <!-- 加载示例数据按钮将根据配置动态显示 -->
+                        <button class="btn btn-secondary" id="loadSampleBtn" style="display: none;">
+                            <i class="fas fa-file-alt"></i> 加载示例
+                        </button>
+                        <button class="btn btn-outline" onclick="clearResults()">
+                            <i class="fas fa-trash"></i> 清空结果
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- PC端页脚 -->
+            <div class="sidebar-footer">
+                <div class="footer-status">
+                    <p>
+                        <span class="status" id="connectionStatus">
+                            <i class="fas fa-circle status-icon"></i> 正在连接服务器...
+                        </span>
+                        <span class="copyright"> | © 2025 ZFY AI智能评估</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <!-- 右侧主内容区（PC端）或中间内容区（移动端） -->
+        <div class="main-content">
+            <div class="card">
+                <div class="results-header">
+                    <h2><i class="fas fa-chart-bar"></i> 分析结果</h2>
+                    <!-- 示例数据标记 -->
+                    <div class="sample-indicator" id="sampleIndicator" style="display: none;">
+                        <i class="fas fa-vial"></i> 示例数据
+                    </div>
+                    <div class="result-actions">
+                        <button class="btn btn-icon" onclick="toggleTheme()" title="切换主题">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="exportJSON()" title="导出JSON">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="printResults()" title="打印结果">
+                            <i class="fas fa-print"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>正在分析中，请稍候...</p>
+                </div>
+                <!-- 轮播容器 -->
+                <div class="carousel-container">
+                    <div class="carousel-track" id="carouselTrack">
+                        <!-- 页面1: 分数概览 -->
+                        <div class="carousel-page active" id="page1">
+                            <div class="page-title" id="page1Title">
+                                <i class="fas fa-chart-pie"></i> 分数概览
+                            </div>
+                            <div class="carousel-content" id="scoreOverviewContent">
+                                <!-- 内容由JS动态生成 -->
+                            </div>
+                        </div>
+                        <!-- 页面2: 分析报告 -->
+                        <div class="carousel-page" id="page2">
+                            <div class="page-title" id="page2Title">
+                                <i class="fas fa-file-medical-alt"></i> 学习分析报告
+                            </div>
+                            <div class="carousel-content" id="analysisReportContent">
+                                <!-- 内容由JS动态生成 -->
+                            </div>
+                        </div>
+                        <!-- 页面3: 维度详情 -->
+                        <div class="carousel-page" id="page3">
+                            <div class="page-title" id="page3Title">
+                                <i class="fas fa-table"></i> 维度详情
+                            </div>
+                            <div class="carousel-content" id="dimensionsContent">
+                                <!-- 内容由JS动态生成 -->
+                            </div>
+                        </div>
+                        <!-- 页面4: 雷达图 -->
+                        <div class="carousel-page" id="page4">
+                            <div class="page-title" id="page4Title">
+                                <i class="fas fa-chart-radar"></i> 雷达图分析
+                            </div>
+                            <div class="carousel-content" id="radarChartContent">
+                                <!-- 内容由JS动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 轮播导航 -->
+                    <div class="carousel-nav">
+                        <button class="btn btn-icon" id="prevBtn" title="上一页">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="carousel-indicator" id="carouselIndicator">
+                            <span id="currentPage">1</span> / <span id="totalPages">4</span>
+                        </div>
+                        <button class="btn btn-icon" id="nextBtn" title="下一页">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- 显示当前页说明 -->
+                <div class="page-hint" id="pageHint">
+                    使用← → 键或按钮切换页面
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 移动端页脚 -->
+    <div class="mobile-footer">
+        <p>
+            <span class="status" id="mobileConnectionStatus">
+                <i class="fas fa-circle status-icon"></i> 正在连接服务器...
+            </span>
+            <span class="copyright"> | © 2025 AI智能评估</span>
+        </p>
+        </p>
+    </div>
+    <script src="app.js"></script>
+    <!-- https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js -->
+    <script src="chart-v3.9.1.min.js"></script>
+</body>
+</html>

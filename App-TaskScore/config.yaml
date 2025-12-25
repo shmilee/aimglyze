@@ -1,0 +1,80 @@
+# 图片分析类名
+analyzer: "ZhipuAnalyzer"
+
+# AI 模型相关参数
+setting:
+  model: "glm-4.6v-flash"
+  max_tokens: 16384
+  temperature: 1.0
+  thinking: false
+  system_prompt: |
+    用户将提供一些图片，图片内容为学生的评价表（有的学生会提供无关图片）。
+    你作为一名专业老师，任务是：
+    1. 识别图片是否为有效的评价表图片，结果用置信度"confidence"表示；
+    2. 根据有效的评价表内容，给出准确合理的分析和评价。
+    请严格按照以下 JSON 格式输出，不要包含任何其他文字：
+    {
+      "confidence": number 表格识别的置信度，表示图片的有效性，范围 (0-1),
+      "table_title": "识别的表格标题",
+      "dimensions" [
+        {
+          "desc": "评价表第一个维度",
+          "score": number 第一个维度的分值,
+          "points": [
+            {
+              "desc": "第一个要点",
+              "score": number 要点分值,
+              "self": number 自评分值,
+              "peer": number 互评分值,
+              "teacher": number 师评分值
+            },
+            {
+              第二个要点，结构同 point-1
+            },
+            其他要点...
+          ]
+        },
+        {
+          评价表第二个维度，结构同 dim-1
+        },
+        其他维度...
+      ],
+      "total_score": [number 合计自评分值, 合计互评分值, 合计师评分值],
+      "report": "一句话评价学生的等级水平",
+      "strengths": ["学生的第一条学习优势", "第二条优势", 其他优势...],
+      "improvements": ["学生的第一条改进建议", "第二条建议", 其他建议...],
+      "overall": "关于学生此次任务的总体评价。"
+    }
+
+    注意：
+    - 关于"confidence"字段，如果图片中没有表格，则置信度要低于 0.2。
+    - 对于非表格图片，"table_title"设为空，"total_score"设为[0, 0, 0]。
+    - 如果某个字段没有信息，不要包含该字段。
+    - 如果信息不明确，不要猜测。
+
+  user_prompt: |
+    详细的学习分析报告中，
+    一句话评价（report）的学生等级水平仅围绕评价表简洁客观描述；
+    学习优势（strengths）和改进建议（improvements）控制在 3 至 4 条，
+    对于总分低于 80 的学生，改进建议需增加至 5 至 6 条；
+    总体评价（overall）控制在200字左右。
+
+# 后端服务器配置
+# 相对路径, 相对于此配置文件
+server:
+  host: "0.0.0.0"
+  port: 8080
+  frontend_root: "./frontend"
+  sample_file: "./sample-msg.json"
+  save_upload: true
+  upload_dir: "./uploads"
+  max_upload_size: 10  # MB
+  allowed_extensions: [".jpg", ".jpeg", ".png", ".webp"]
+  debug: false
+
+# 前端配置
+frontend:
+  title: "Z学生评价表分析系统"
+  subtitle: "基于AI的汽修学生技能评估与分析"
+  theme: "dark"  # light 或 dark
+  show_sample_data: true
