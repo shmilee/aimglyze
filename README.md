@@ -144,6 +144,11 @@ python -m aimglyze.cli server App-TaskScore/config.yaml
 - `GeminiAnalyzer` - Google Gemini
 - 其他兼容 OpenAI API 的服务
 
+**缓存配置** `cache`:
+- `dir`: 缓存目录 (默认: ./cache)
+- `max_age`: 缓存有效期 (默认: 2592000，单位秒，30天)
+- `cleanup_on_start`: 启动时是否清理过期缓存 (默认: false)
+
 **服务器配置**:
 - `host`: 服务器监听地址 (默认: 127.0.0.1)
 - `port`: 服务器端口 (默认: 8080)
@@ -199,6 +204,11 @@ python -m aimglyze.cli server App-TaskScore/config.yaml
 * 前端界面的初始版本由 DeepSeek 生成。
 
 ## 更新日志
+
+### v0.2.3 (2025-12-26)
+* 更改项目目录
+* 支持 python 打包
+* 添加应用别名功能
 
 ### v0.2.0 (2025-12-25)
 * 新增 App-TaskScore 学生评价表分析应用
