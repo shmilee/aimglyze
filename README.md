@@ -2,14 +2,10 @@
 
 一个基于 AI 的图像分析与识别应用框架，支持灵活的多应用架构。
 
-## 名称含义
-
-**aimglyze** 是三个英文单词的组合：
+**aimglyze** 是三个英文单词的组合，组合意为 **"AI 图像分析系统"**。
 - **AI**：人工智能，代表系统的核心技术
 - **image**：图像，代表系统的主要处理对象
 - **analyze**：分析，代表系统的核心功能
-
-组合意为 **"AI 图像分析系统"**，准确表达了项目的核心定位。
 
 ## 应用概览
 
@@ -42,7 +38,7 @@
 #### 2. 服务器模块 (`server.py`)
 - **灵活的配置系统**：通过YAML配置文件管理应用设置
 - **智能文件管理**：基于文件哈希值避免重复保存，节省存储空间
-- **结果缓存机制**：缓存分析结果1小时，避免重复分析相同图片
+- **结果缓存机制**：缓存分析结果30天，避免重复分析相同图片
 - **健康检查接口**：实时监控服务器状态，确保服务可用性
 
 #### 3. 配置系统
@@ -124,13 +120,13 @@ export GEMINI_API_KEY=your_gemini_api_key_here
 
 #### 启动 App-DescTags (图片分析应用)
 ```bash
-python -m aimglyze.cli server App-DescTags/config.yaml
+python -m aimglyze.cli server aimglyze/apps/App-DescTags/config.yaml
 ```
 访问: http://localhost:8080
 
 #### 启动 App-TaskScore (学生评价表分析应用)
 ```bash
-python -m aimglyze.cli server App-TaskScore/config.yaml
+python -m aimglyze.cli server aimglyze/apps/App-TaskScore/config.yaml
 ```
 访问: http://localhost:8088
 
@@ -217,9 +213,15 @@ aimglyze server desc-tags
 1. **API密钥**: 确保有可用的 AI API 密钥并正确设置环境变量
 2. **文件大小**: 上传文件大小受配置中的 `max_upload_size` 限制
 3. **图片质量**: 确保图片清晰可读，特别是评价表应用
-4. **结果缓存**: 分析结果会缓存1小时，避免重复分析相同图片
-5. **存储权限**: 如果启用文件保存，确保 `uploads` 目录有写入权限
-6. **应用选择**: 根据需求选择启动对应的应用，两个应用配置独立
+4. **存储权限**: 如果启用文件保存，确保 `uploads` 目录有写入权限
+
+## Roadmap
+
+- [ ] 后端切换为异步框架，使用 FastAPI + Uvicorn
+- [ ] 多用户支持与登陆功能
+- [ ] 提取前端代码公共组件，不同应用相同布局
+- [ ] 修复手机端 iOS Safari 图片上传
+- [ ] 前端切换应用功能
 
 ## 许可证 MIT
 
