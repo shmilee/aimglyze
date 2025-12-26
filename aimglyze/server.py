@@ -136,11 +136,11 @@ class AnalysisServer(object):
 
     def get_file_hash(self, image_data):
         """计算文件的哈希值"""
-        return hashlib.md5(image_data).hexdigest()
+        return hashlib.sha1(image_data).hexdigest()
 
     def scan_cache_files(self):
         """扫描缓存目录中的已有缓存文件"""
-        print(f"正在扫描缓存目录: {self.cache_dir}")
+        print(f"正在扫描缓存目录 ...")
         self.cache_files = {}
         for file_path in self.cache_dir.iterdir():
             if file_path.is_file() and file_path.suffix.lower() == '.json':
@@ -157,7 +157,7 @@ class AnalysisServer(object):
         if not self.save_upload or self.upload_dir is None:
             return
 
-        print(f"正在扫描上传目录: {self.upload_dir}")
+        print(f"正在扫描上传目录 ...")
         # 获取允许的文件扩展名
         allowed_extensions = self.config['server']['allowed_extensions']
         # 遍历上传目录中的所有文件
@@ -710,8 +710,9 @@ def run_server(config_path):
             *args, **kwargs, server_instance=server)
         httpd = HTTPServer(
             (server_config['host'], server_config['port']), handler_class)
-        print(f"服务器启动在 http://{server_config['host']}:{server_config['port']}")
-        print("按 Ctrl+C 停止服务器")
+        print(
+            f"\n🌐 服务器启动在 http://{server_config['host']}:{server_config['port']}")
+        print("⌨  按 Ctrl+C 停止服务器")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
