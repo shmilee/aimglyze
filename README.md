@@ -161,6 +161,32 @@ python -m aimglyze.cli server App-TaskScore/config.yaml
 - `theme`: 主题 (light/dark)
 - `show_sample_data`: 是否显示"加载示例"按钮
 
+## Python 包安装与使用
+
+```
+# 制作包
+python -m build --wheel --no-isolation
+ls dist/
+
+# 创建 aimglyze 环境
+Aimglyze_PATH=~/AImglyzer
+python3 -m venv "$Aimglyze_PATH" --prompt AImgze
+sed -e '/PS1=.*AImgze/ s/PS1/#PS1/' \
+    -e "/PS1=.*AImgze/a\    PS1=\"\$(echo \"\${PS1:-}\" \| sed 's\|^\|(AImgze)\|g')\"" \
+    -i $Aimglyze_PATH/bin/activate
+source "$Aimglyze_PATH/bin/activate"
+
+# 安装包
+python3 -m pip install dist/aimglyze-*-any.whl
+
+# 查看命令
+which aimglyze
+aimglyze -h
+
+# 启动 App-DescTags (图片分析应用)
+aimglyze server desc-tags
+```
+
 ## API 接口
 
 两个应用共享相同的后端API接口：

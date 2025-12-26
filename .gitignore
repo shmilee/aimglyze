@@ -2,3 +2,6 @@
 aimglyze/apps/App-*/cache/*
 aimglyze/apps/App-*/uploads/*
 __pycache__/
+aimglyze.egg-info/
+build/
+dist/
