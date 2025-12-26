@@ -124,15 +124,15 @@ export GEMINI_API_KEY=your_gemini_api_key_here
 
 #### 启动 App-DescTags (图片分析应用)
 ```bash
-python -m aimglyze.cli App-DescTags/config.yaml
+python -m aimglyze.cli server App-DescTags/config.yaml
 ```
 访问: http://localhost:8080
 
 #### 启动 App-TaskScore (学生评价表分析应用)
 ```bash
-python -m aimglyze.cli App-TaskScore/config.yaml
+python -m aimglyze.cli server App-TaskScore/config.yaml
 ```
-访问: http://localhost:8080
+访问: http://localhost:8088
 
 ### 3. 修改配置
 
@@ -204,6 +204,7 @@ python -m aimglyze.cli App-TaskScore/config.yaml
 * 新增 App-TaskScore 学生评价表分析应用
 * 支持评价表结构化解析和多维度评估
 * 添加雷达图可视化分析
+* 添加缓存、上传文件的清理功能
 
 ### v0.1.2 (2025-12-24)
 * 修改 Web 界面布局，桌面端改为左右排布

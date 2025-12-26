@@ -579,8 +579,7 @@ function exportJSON() {
     }
     const exportData = {
         ...AppState.currentData,
-        is_sample_data: AppState.isSampleData,
-        export_timestamp: new Date().toISOString()
+        export_timestamp: new Date().toISOString() // Date.now()
     };
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);

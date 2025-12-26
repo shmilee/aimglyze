@@ -11,6 +11,7 @@ import base64
 import mimetypes
 import hashlib
 import time
+import shutil
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -37,8 +38,27 @@ class AnalysisServer(object):
         analyzer_config = get_analyzer_config(self.config_path)
         analyzer_class = AnalyzerMap[analyzer_config['analyzer']]
         self.analyzer = analyzer_class(**analyzer_config['setting'])
-        # 缓存分析结果
+        # 内存缓存
         self.results_cache = {}
+
+        # 初始化缓存配置
+        cache_dir = self.config['cache'].get('dir')
+        if not os.path.isabs(cache_dir):
+            cache_dir = os.path.join(self.config_dir, cache_dir)
+        self.cache_dir = Path(cache_dir)
+        self.cache_max_age = self.config['cache'].get('max_age')
+        self.cleanup_on_start = self.config['cache'].get('cleanup_on_start')
+
+        # 创建缓存目录
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        print(f"缓存目录: {self.cache_dir}")
+        print(f"缓存有效期: {self.cache_max_age / 86400:.1f} 天")
+        # 启动时扫描缓存目录
+        self.scan_cache_files()
+        # 如果配置了启动时清理，执行清理
+        if self.cleanup_on_start:
+            print("启动时清理过期缓存...")
+            self.clean_cache_files()
 
         # 前端根目录可以是绝对路径或相对于配置文件所在目录的相对路径
         frontend_root = self.config['server'].get('frontend_root')
@@ -82,7 +102,13 @@ class AnalysisServer(object):
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
-        # 设置默认值
+        # 设置缓存默认值
+        cache_config = config.get('cache', {})
+        cache_config.setdefault('dir', './cache')
+        cache_config.setdefault('max_age', 2592000)  # 30天
+        cache_config.setdefault('cleanup_on_start', False)
+
+        # 设置服务器默认值
         server_config = config.get('server', {})
         server_config.setdefault('host', '127.0.0.1')
         server_config.setdefault('port', 8080)
@@ -95,12 +121,14 @@ class AnalysisServer(object):
                                  '.jpg', '.jpeg', '.png', '.webp'])
         server_config.setdefault('debug', False)  # 调试开关
 
+        # 设置前端默认值
         frontend_config = config.get('frontend', {})
         frontend_config.setdefault('title', '图片分析系统')
         frontend_config.setdefault('subtitle', '基于AI的图片分析与描述')
         frontend_config.setdefault('theme', 'light')
         frontend_config.setdefault('show_sample_data', True)
 
+        config['cache'] = cache_config
         config['server'] = server_config
         config['frontend'] = frontend_config
 
@@ -109,6 +137,20 @@ class AnalysisServer(object):
     def get_file_hash(self, image_data):
         """计算文件的哈希值"""
         return hashlib.md5(image_data).hexdigest()
+
+    def scan_cache_files(self):
+        """扫描缓存目录中的已有缓存文件"""
+        print(f"正在扫描缓存目录: {self.cache_dir}")
+        self.cache_files = {}
+        for file_path in self.cache_dir.iterdir():
+            if file_path.is_file() and file_path.suffix.lower() == '.json':
+                cache_key = file_path.stem  # 文件名作为缓存键
+                self.cache_files[cache_key] = {
+                    'path': str(file_path),
+                    'mtime': file_path.stat().st_mtime
+                }
+                print(f"找到缓存文件: {cache_key}")
+        print(f"扫描完成，找到 {len(self.cache_files)} 个缓存文件")
 
     def scan_existing_files(self):
         """扫描上传目录中已存在的文件，重建文件哈希映射"""
@@ -154,7 +196,6 @@ class AnalysisServer(object):
             existing_file = self.file_hash_map[file_hash]
             print(f"文件已存在，使用现有文件: {existing_file}")
             return existing_file
-
         # 生成文件名
         extension = mimetypes.guess_extension(mime_type) or '.jpg'
         filename = f"{file_hash}{extension}"
@@ -167,15 +208,72 @@ class AnalysisServer(object):
         print(f"文件已保存: {filepath}")
         return str(filepath)
 
+    def get_cache_file_path(self, cache_key):
+        """获取缓存文件路径"""
+        return self.cache_dir / f"{cache_key}.json"
+
+    def load_from_cache(self, cache_key):
+        """从缓存文件加载结果"""
+        cache_file = self.get_cache_file_path(cache_key)
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    cache_data = json.load(f)
+                # 检查缓存是否过期
+                cache_time = cache_data.get('timestamp', 0)
+                if time.time() - cache_time < self.cache_max_age:
+                    return cache_data
+                else:
+                    print(f"缓存已过期: {cache_key}")
+                    # 过期文件不删除，由清理任务处理
+                    return None
+            except Exception as e:
+                print(f"读取缓存文件失败: {cache_key}, 错误: {str(e)}")
+                return None
+        return None
+
+    def save_to_cache(self, cache_key, result):
+        """保存结果到缓存文件"""
+        cache_data = {
+            'result': result,
+            'timestamp': time.time(),
+            'cache_key': cache_key
+        }
+        cache_file = self.get_cache_file_path(cache_key)
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, ensure_ascii=False, indent=2)
+            print(f"结果已保存到缓存: {cache_file}")
+            # 更新缓存文件映射
+            self.cache_files[cache_key] = {
+                'path': str(cache_file),
+                'mtime': cache_file.stat().st_mtime
+            }
+        except Exception as e:
+            print(f"保存缓存文件失败: {str(e)}")
+
     def analyze_image(self, image_data, mime_type):
         """分析图片并返回结果"""
         try:
             # 生成缓存键
             cache_key = self.get_file_hash(image_data)
-            # 检查缓存
+            # 首先检查内存缓存
             if cache_key in self.results_cache:
-                print(f"使用缓存结果: {cache_key}")
-                return self.results_cache[cache_key]
+                cached_result = self.results_cache[cache_key]
+                # 检查内存缓存是否过期
+                if time.time() - cached_result['timestamp'] < self.cache_max_age:
+                    print(f"使用内存缓存结果: {cache_key}")
+                    return {'result': cached_result['result'], 'cache_key': cache_key}
+                else:
+                    # 内存缓存过期，删除
+                    del self.results_cache[cache_key]
+            # 然后检查磁盘缓存
+            cache_data = self.load_from_cache(cache_key)
+            if cache_data:
+                print(f"使用磁盘缓存结果: {cache_key}")
+                # 更新到内存缓存
+                self.results_cache[cache_key] = cache_data
+                return {'result': cache_data['result'], 'cache_key': cache_key}
 
             # 执行分析
             print("开始分析图片...")
@@ -184,14 +282,15 @@ class AnalysisServer(object):
             elapsed = time.time() - start_time
             print(f"分析完成，耗时: {elapsed:.2f}秒")
 
-            # 缓存结果（有效期1小时）
-            self.results_cache[cache_key] = {
+            # 保存到内存缓存
+            cache_data = {
                 'result': result,
                 'timestamp': time.time(),
                 'cache_key': cache_key
             }
-            # 清理过期缓存
-            self.clean_cache()
+            self.results_cache[cache_key] = cache_data
+            # 保存到磁盘缓存
+            self.save_to_cache(cache_key, result)
 
             return {'result': result, 'cache_key': cache_key}
 
@@ -199,17 +298,102 @@ class AnalysisServer(object):
             print(f"分析失败: {str(e)}")
             return {'error': str(e)}
 
-    def clean_cache(self, max_age=3600):
-        """清理过期缓存"""
+    def clean_cache_files(self):
+        """清理过期的缓存文件"""
+        print("清理过期缓存文件...")
         now = time.time()
-        expired_keys = [
-            key for key, data in self.results_cache.items()
-            if now - data['timestamp'] > max_age
-        ]
-        for key in expired_keys:
-            del self.results_cache[key]
-        if expired_keys:
-            print(f"清理了 {len(expired_keys)} 个过期缓存")
+        expired_files = []
+
+        for cache_key, cache_info in list(self.cache_files.items()):
+            cache_file = Path(cache_info['path'])
+            if cache_file.exists():
+                # 检查文件修改时间
+                file_mtime = cache_file.stat().st_mtime
+                if now - file_mtime > self.cache_max_age:
+                    try:
+                        # 读取文件获取确切的时间戳
+                        with open(cache_file, 'r', encoding='utf-8') as f:
+                            cache_data = json.load(f)
+                        cache_time = cache_data.get('timestamp', file_mtime)
+
+                        if now - cache_time > self.cache_max_age:
+                            expired_files.append(cache_file)
+                    except:
+                        # 如果读取失败，使用文件修改时间
+                        if now - file_mtime > self.cache_max_age:
+                            expired_files.append(cache_file)
+
+        # 删除过期文件
+        deleted_count = 0
+        for cache_file in expired_files:
+            try:
+                cache_file.unlink()
+                cache_key = cache_file.stem
+                if cache_key in self.cache_files:
+                    del self.cache_files[cache_key]
+                if cache_key in self.results_cache:
+                    del self.results_cache[cache_key]
+                print(f"删除过期缓存: {cache_file.name}")
+                deleted_count += 1
+            except Exception as e:
+                print(f"删除缓存文件失败: {cache_file}, 错误: {str(e)}")
+        print(f"清理完成，删除了 {deleted_count} 个过期缓存文件")
+        return deleted_count
+
+    def clean_low_confidence_uploads(self, confidence_threshold=0.5, dry_run=False):
+        """清理低置信度的上传文件"""
+        if not self.save_upload or self.upload_dir is None:
+            print("上传保存功能未启用，无法清理上传文件")
+            return 0
+        print(f"清理置信度低于 {confidence_threshold} 的上传文件...")
+        if dry_run:
+            print("模拟运行模式 - 不会实际删除文件")
+
+        deleted_count = 0
+        # 获取允许的文件扩展名
+        allowed_extensions = self.config['server']['allowed_extensions']
+        # 遍历上传目录中的所有文件
+        for file_path in self.upload_dir.iterdir():
+            if file_path.is_file():
+                # 检查文件扩展名是否在允许的列表中
+                file_ext = file_path.suffix.lower()
+                if allowed_extensions and file_ext not in allowed_extensions:
+                    continue
+                # 从文件名中提取哈希值
+                file_stem = file_path.stem
+                # 查找对应的缓存文件
+                cache_file = self.get_cache_file_path(file_stem)
+                if cache_file.exists():
+                    try:
+                        with open(cache_file, 'r', encoding='utf-8') as f:
+                            cache_data = json.load(f)
+                        # 获取置信度
+                        result = cache_data.get('result', {})
+                        confidence = result.get('confidence', 1.0)
+                        if confidence < confidence_threshold:
+                            print(
+                                f"文件 {file_path.name} 置信度 {confidence:.2f} 低于阈值 {confidence_threshold}")
+                            if not dry_run:
+                                # 删除上传文件
+                                file_path.unlink()
+                                print(f"已删除上传文件: {file_path.name}")
+                                # 从哈希映射中移除
+                                if file_stem in self.file_hash_map:
+                                    del self.file_hash_map[file_stem]
+                                # 删除缓存文件
+                                cache_file.unlink()
+                                print(f"已删除缓存文件: {cache_file.name}")
+                                # 从内存缓存中移除
+                                if file_stem in self.results_cache:
+                                    del self.results_cache[file_stem]
+                                # 从缓存文件映射中移除
+                                if file_stem in self.cache_files:
+                                    del self.cache_files[file_stem]
+                            deleted_count += 1
+                    except Exception as e:
+                        print(f"处理文件 {file_path.name} 时出错: {str(e)}")
+        print(f"找到 {deleted_count} 个低置信度文件" + (" (模拟运行)" if dry_run else ""))
+        return deleted_count
 
 
 # aimglyze-light-16x16.ico
@@ -346,7 +530,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             'frontend': config['frontend'],
             'allowed_extensions': config['server']['allowed_extensions'],
             'max_upload_size': config['server']['max_upload_size'],
-            'save_upload': config['server']['save_upload']  # 上传保存开关状态
+            'save_upload': config['server']['save_upload'],  # 上传保存开关状态
+            'cache_max_age': config['cache']['max_age']
         }
         self.send_json(response)
 
@@ -361,7 +546,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 sample_data = json.load(f)
             # 添加示例标记
             sample_data['is_sample'] = True
-            sample_data['timestamp'] = time.time()
+            sample_data['timestamp'] = Path(sample_file).stat().st_mtime
             self.send_json(sample_data)
         except Exception as e:
             self.send_error(500, f"Failed to load sample data: {str(e)}")
@@ -370,7 +555,12 @@ class RequestHandler(BaseHTTPRequestHandler):
         """发送健康检查响应"""
         response = {
             'status': 'ok',
-            'timestamp': time.time()
+            'timestamp': time.time(),
+            'cache_stats': {
+                'memory_cache_count': len(self.server_instance.results_cache),
+                'disk_cache_count': len(self.server_instance.cache_files),
+                'upload_files_count': len(self.server_instance.file_hash_map) if self.server_instance.save_upload else 0
+            }
         }
         self.send_json(response)
 
@@ -382,7 +572,14 @@ class RequestHandler(BaseHTTPRequestHandler):
                 data = self.server_instance.results_cache[cache_key]
                 self.send_json(data)
             else:
-                self.send_error(404, "Result not found")
+                # 尝试从磁盘加载
+                cache_data = self.server_instance.load_from_cache(cache_key)
+                if cache_data:
+                    # 更新到内存缓存
+                    self.server_instance.results_cache[cache_key] = cache_data
+                    self.send_json(cache_data)
+                else:
+                    self.send_error(404, "Result not found")
         except Exception as e:
             self.send_error(500, str(e))
 
@@ -451,7 +648,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             if 'result' in result:
                 result['file_info'] = {
                     'hash': file_hash,
-                    'path': filepath,
+                    'path': os.path.basename(filepath) if filepath else None,
                     'size': len(image_data),
                     'mime_type': mime_type,
                     'saved': filepath is not None  # 标记文件是否被保存
@@ -508,16 +705,13 @@ def run_server(config_path):
         # 创建服务器实例
         server = AnalysisServer(config_path)
         server_config = server.config['server']
-
         # 创建HTTP服务器
         handler_class = lambda *args, **kwargs: RequestHandler(
             *args, **kwargs, server_instance=server)
         httpd = HTTPServer(
             (server_config['host'], server_config['port']), handler_class)
-
         print(f"服务器启动在 http://{server_config['host']}:{server_config['port']}")
         print("按 Ctrl+C 停止服务器")
-
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
@@ -525,10 +719,36 @@ def run_server(config_path):
             httpd.server_close()
             print("服务器已停止")
             sys.exit(0)
-
     except Exception as e:
         print(f"启动服务器失败: {str(e)}")
         sys.exit(1)
+
+
+def cleanup_cache(config_path):
+    """清理过期缓存"""
+    try:
+        # 创建服务器实例以访问配置
+        server = AnalysisServer(config_path)
+        # 清理缓存文件
+        deleted_count = server.clean_cache_files()
+        return deleted_count
+    except Exception as e:
+        print(f"清理缓存失败: {str(e)}")
+        return 0
+
+
+def cleanup_low_confidence_uploads(config_path, confidence_threshold=0.5, dry_run=False):
+    """清理低置信度的上传文件"""
+    try:
+        # 创建服务器实例以访问配置
+        server = AnalysisServer(config_path)
+        # 清理低置信度文件
+        deleted_count = server.clean_low_confidence_uploads(
+            confidence_threshold, dry_run)
+        return deleted_count
+    except Exception as e:
+        print(f"清理上传文件失败: {str(e)}")
+        return 0
 
 
 if __name__ == "__main__":

@@ -1043,8 +1043,7 @@ function exportJSON() {
     // 添加维度统计数据到导出数据
     const exportData = {
         ...AppState.currentData,
-        dimension_stats: AppState.dimensionStats,
-        is_sample_data: AppState.isSampleData,
+        // dimension_stats: AppState.dimensionStats,
         export_timestamp: new Date().toISOString()
     };
     const dataStr = JSON.stringify(exportData, null, 2);
