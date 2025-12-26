@@ -1,4 +1,4 @@
 *~
-App-*/cache/*
-App-*/uploads/*
+aimglyze/apps/App-*/cache/*
+aimglyze/apps/App-*/uploads/*
 __pycache__/
