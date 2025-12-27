@@ -237,6 +237,7 @@ aimglyze server desc-tags
 * 更改项目目录
 * 支持 python 打包
 * 添加应用别名功能
+* 添加 tk GUI
 
 ### v0.2.0 (2025-12-25)
 * 新增 App-TaskScore 学生评价表分析应用

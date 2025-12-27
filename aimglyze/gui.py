@@ -2,13 +2,14 @@
 
 # Copyright (c) 2025 shmilee
 
-import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext, filedialog
+import os
+import sys
+import signal
 import subprocess
 import threading
-import sys
-import os
 from pathlib import Path
+import tkinter as tk
+from tkinter import ttk, messagebox, scrolledtext, filedialog
 
 # 版本信息
 VERSION = "0.2.3"
@@ -204,7 +205,7 @@ class ApplicationGUI(object):
         self.service_status_canvas.pack(side=tk.LEFT, padx=(18, 0))
         self.service_status_indicator = self.service_status_canvas.create_oval(
             5, 5, 15, 15,
-            fill="green"  # 绿色表示就绪
+            fill="blue"  # 蓝色表示就绪
         )
         # 服务状态标签
         self.service_status_label = ttk.Label(
@@ -228,7 +229,7 @@ class ApplicationGUI(object):
         self.clean_status_canvas.pack(side=tk.LEFT, padx=(18, 0))
         self.clean_status_indicator = self.clean_status_canvas.create_oval(
             5, 5, 15, 15,
-            fill="green"  # 绿色表示就绪
+            fill="blue"  # 蓝色表示就绪
         )
         # 清理状态标签
         self.clean_status_label = ttk.Label(
@@ -330,14 +331,14 @@ class ApplicationGUI(object):
         """清空日志"""
         self.log_text.delete(1.0, tk.END)
 
-    def update_service_status(self, status, color="green"):
+    def update_service_status(self, status, color="blue"):
         """更新服务状态"""
         self.service_status_label.config(text=status)
         self.service_status_canvas.itemconfig(
             self.service_status_indicator, fill=color)
         self.service_status_canvas.update()
 
-    def update_clean_status(self, status, color="green"):
+    def update_clean_status(self, status, color="blue"):
         """更新清理状态"""
         self.clean_status_label.config(text=status)
         self.clean_status_canvas.itemconfig(
@@ -375,7 +376,7 @@ class ApplicationGUI(object):
         """执行服务器启动命令"""
         try:
             # 构建命令
-            command = [sys.executable, "-m",
+            command = [sys.executable, "-u", "-m",
                        "aimglyze.cli", "server", config_arg]
             # 启动子进程
             self.server_process = subprocess.Popen(
@@ -387,7 +388,7 @@ class ApplicationGUI(object):
                 universal_newlines=True
             )
             self.log_message(f"服务器已启动，PID: {self.server_process.pid}")
-            self.update_service_status("运行中", "red")
+            self.update_service_status("运行中", "green")
             # 实时读取输出
             for line in iter(self.server_process.stdout.readline, ''):
                 if line:
@@ -402,12 +403,12 @@ class ApplicationGUI(object):
 
     def on_server_stopped(self, return_code):
         """服务器停止时的回调"""
-        if return_code == 0:
+        if return_code in [0, -signal.SIGTERM]:
             self.log_message("服务器正常停止")
             self.update_service_status("已停止", "orange")
         else:
             self.log_message(f"服务器异常退出，返回码: {return_code}")
-            self.update_service_status("异常停止", "orange")
+            self.update_service_status("异常停止", "red")
         # 恢复按钮状态
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
@@ -485,7 +486,7 @@ class ApplicationGUI(object):
         """执行清理命令"""
         try:
             # 构建命令
-            command = [sys.executable, "-m",
+            command = [sys.executable, "-u", "-m",
                        "aimglyze.cli", command_type, config_arg]
             # 执行命令
             result = subprocess.run(
@@ -505,11 +506,9 @@ class ApplicationGUI(object):
     def on_clean_completed(self, command_type, result):
         """清理完成时的回调"""
         if result.returncode == 0:
-            self.log_message(f"{command_type} 完成")
             self.log_message(result.stdout)
             self.update_clean_status("清理完成", "green")
         else:
-            self.log_message(f"{command_type} 失败")
             self.log_message(f"错误: {result.stderr}")
             self.update_clean_status("清理失败", "red")
 
