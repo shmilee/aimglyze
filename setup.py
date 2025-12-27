@@ -37,6 +37,8 @@ setup(
             "apps/**/*.ico",
             "apps/**/*.json",
             "apps/**/*.yaml",
+            "logos/aimglyze-light.ico",
+            "logos/aimglyze-light-256x256.png",
         ],
     },
     classifiers=[
