@@ -63,6 +63,9 @@ setup(
         "console_scripts": [
             "aimglyze=aimglyze.cli:main",
         ],
+        'gui_scripts': [
+            "aimglyze-gui=aimglyze.gui:main",
+        ],
     },
     project_urls={
         "Bug Reports": "https://github.com/shmilee/aimglyze/issues",
