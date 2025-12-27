@@ -238,7 +238,7 @@ def get_analyzer_config(yaml_config: str):
     ```
     '''
     if os.path.isfile(yaml_config):
-        with open(yaml_config, 'r') as yc:
+        with open(yaml_config, 'r', encoding='utf-8') as yc:
             config = yaml.safe_load(yc)
         return dict(
             analyzer=config.get('analyzer', None) or 'default',
