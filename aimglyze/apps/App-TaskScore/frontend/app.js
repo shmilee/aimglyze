@@ -773,6 +773,7 @@ function prepareRadarData(dimensionStats) {
     const selfData = [];
     const peerData = [];
     const teacherData = [];
+    const totalScores = []; // 每个维度的总分（满分值）
     Object.keys(dimensionStats).forEach(dimKey => {
         const stats = dimensionStats[dimKey];
         labels.push(stats.desc);
@@ -780,12 +781,15 @@ function prepareRadarData(dimensionStats) {
         selfData.push(stats.selfTotalScore);
         peerData.push(stats.peerTotalScore);
         teacherData.push(stats.teacherTotalScore);
+        // 记录每个维度的总分（满分值）
+        totalScores.push(stats.totalMaxScore);
     });
     return {
         labels,
         selfData,
         peerData,
-        teacherData
+        teacherData,
+        totalScores
     };
 }
 // 创建雷达图
@@ -812,19 +816,12 @@ function createRadarChart(radarData) {
     const gridLineColor = isDarkTheme ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)';
     const angleLineColor = isDarkTheme ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.15)';
     const tickColor = isDarkTheme ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
-    // 计算每个维度的最大值（用于标准化到0-100%）
-    const maxValues = radarData.labels.map((_, index) => {
-        return Math.max(
-            radarData.selfData[index] || 0,
-            radarData.peerData[index] || 0,
-            radarData.teacherData[index] || 0
-        );
-    });
-    // 标准化数据到0-100%
+    // 使用每个维度的总分（totalMaxScore）作为归一化基准
+    // 归一化数据到0-100%
     const normalizeData = (data) => {
         return data.map((value, index) => {
-            const max = maxValues[index];
-            return max > 0 ? (value / max) * 100 : 0;
+            const maxScore = radarData.totalScores[index];
+            return maxScore > 0 ? (value / maxScore) * 100 : 0;
         });
     };
     const normalizedSelf = normalizeData(radarData.selfData);
@@ -908,7 +905,11 @@ function createRadarChart(radarData) {
                             } else if (context.datasetIndex === 2) {
                                 originalValue = radarData.teacherData[index];
                             }
-                            return `${label}: ${originalValue.toFixed(1)}分`;
+                            // 获取总分
+                            const totalScore = radarData.totalScores[index];
+                            // 计算百分比
+                            const percentage = totalScore > 0 ? (originalValue / totalScore * 100).toFixed(1) : 0;
+                            return `${label}: ${originalValue.toFixed(1)}分 (${percentage}%)`;
                         },
                         // 标题显示维度名称
                         title: function(tooltipItems) {
