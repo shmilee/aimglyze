@@ -6,6 +6,7 @@
 import os
 import sys
 import json
+import locale
 import yaml
 import base64
 import mimetypes
@@ -17,9 +18,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from io import BytesIO
 import threading
-
 # 导入现有的分析器模块
 from .analyzer import get_analyzer_config, AnalyzerMap
+import functools
+print = functools.partial(print, flush=True)
 
 
 class AnalysisServer(object):
@@ -701,6 +703,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def run_server(config_path):
     """启动服务器"""
+    # debug 编码检测
+    print("Locale preferred encoding:", locale.getpreferredencoding())
+    print("sys default encoding:", sys.getdefaultencoding())
+
     try:
         # 创建服务器实例
         server = AnalysisServer(config_path)
@@ -721,7 +727,9 @@ def run_server(config_path):
             print("服务器已停止")
             sys.exit(0)
     except Exception as e:
+        import traceback
         print(f"启动服务器失败: {str(e)}")
+        traceback.print_exc()
         sys.exit(1)
 
 

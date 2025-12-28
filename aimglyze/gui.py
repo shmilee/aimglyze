@@ -376,7 +376,7 @@ class ApplicationGUI(object):
         """执行服务器启动命令"""
         try:
             # 构建命令
-            command = [sys.executable, "-u", "-m",
+            command = [sys.executable, "-u", "-X", "utf8", "-m",
                        "aimglyze.cli", "server", config_arg]
             # 启动子进程
             self.server_process = subprocess.Popen(
@@ -385,7 +385,9 @@ class ApplicationGUI(object):
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
-                universal_newlines=True
+                universal_newlines=True,
+                encoding='utf-8',
+                errors='replace',
             )
             self.log_message(f"服务器已启动，PID: {self.server_process.pid}")
             self.update_service_status("运行中", "green")
@@ -486,14 +488,16 @@ class ApplicationGUI(object):
         """执行清理命令"""
         try:
             # 构建命令
-            command = [sys.executable, "-u", "-m",
+            command = [sys.executable, "-u", "-X", "utf8", "-m",
                        "aimglyze.cli", command_type, config_arg]
             # 执行命令
             result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=60,
+                encoding='utf-8',
+                errors='replace',
             )
             # 在GUI线程中显示结果
             self.root.after(0, self.on_clean_completed, command_type, result)
