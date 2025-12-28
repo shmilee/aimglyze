@@ -12,7 +12,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext, filedialog
 
 # 版本信息
-VERSION = "0.2.3"
+VERSION = "0.2.4"
 
 
 class ApplicationGUI(object):

@@ -19,7 +19,7 @@ if os.path.exists("./requirements.txt"):
 
 setup(
     name="aimglyze",
-    version="0.2.3",
+    version="0.2.4",
     author="shmilee",
     author_email="shmilee.zju@gmail.com",
     description="AI图片分析器，支持多模型（DeepSeek, Gemini, ZhipuAI等）",

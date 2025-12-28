@@ -139,6 +139,8 @@ python -m aimglyze.cli server aimglyze/apps/App-TaskScore/config.yaml
 - `DeepseekAnalyzer` - DeepSeek
 - `GeminiAnalyzer` - Google Gemini
 - 其他兼容 OpenAI API 的服务
+- `setting`参数包括: `API_KEY` `model` `system_prompt` 等参数。
+  其中，API密钥 `API_KEY` 优先级高于环境变量。
 
 **缓存配置** `cache`:
 - `dir`: 缓存目录 (默认: ./cache)
@@ -232,6 +234,11 @@ aimglyze server desc-tags
 * 前端界面的初始版本由 DeepSeek 生成。
 
 ## 更新日志
+
+### v0.2.4 (2025-12-28)
+* 修复 windows 编码问题，输出编码信息
+* 修复 App-TaskScore 雷达图百分比计算错误
+* 添加配置文件 `API_KEY` 参数
 
 ### v0.2.3 (2025-12-26)
 * 更改项目目录
