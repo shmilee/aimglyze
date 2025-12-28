@@ -251,9 +251,9 @@ def get_analyzer_config(yaml_config: str):
 
 if __name__ == "__main__":
     # 单张图片分析
-    config = get_analyzer_config('./App-DescTags/config.yaml')
+    config = get_analyzer_config('./apps/App-DescTags/config.yaml')
     analyzer = AnalyzerMap[config['analyzer']](**config['setting'])
-    image_path = "./logos/aimglyze-light.png"  # 测试 logo 图片
+    image_path = "./logos/aimglyze-light-256x256.png"  # 测试 logo 图片
     with open(image_path, "rb") as image_file:
         image_data = image_file.read()
     ext = os.path.splitext(image_path)[1].lower()

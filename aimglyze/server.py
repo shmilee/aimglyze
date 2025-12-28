@@ -281,6 +281,9 @@ class AnalysisServer(object):
             print("开始分析图片...")
             start_time = time.time()
             result = self.analyzer.chat(image_data, mime_type)
+            if self.config['server'].get('debug', False):
+                print("[D] image_data:", image_data[:15], " ...")
+                print("[D] result:", result)
             elapsed = time.time() - start_time
             print(f"分析完成，耗时: {elapsed:.2f}秒")
 
@@ -761,4 +764,4 @@ def cleanup_low_confidence_uploads(config_path, confidence_threshold=0.5, dry_ru
 
 
 if __name__ == "__main__":
-    run_server('./App-DescTags/config.yaml')
+    run_server('./aimglyze/apps/App-DescTags/config.yaml')
