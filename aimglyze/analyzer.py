@@ -17,10 +17,10 @@ class Analyzer(object):
     '''
     default_model = "NO-MODEL"
 
-    def __init__(self, model=None, max_tokens=8192,
+    def __init__(self, API_KEY=None, model=None, max_tokens=8192,
                  temperature=1.0, thinking=False,
                  system_prompt=None, user_prompt=None, **kwargs):
-        self.set_AiClient()
+        self.set_AiClient(API_KEY)
         self.model = model or self.default_model
         self.max_tokens = max_tokens
         self.temperature = temperature
@@ -38,7 +38,7 @@ class Analyzer(object):
         """
         self.user_prompt = user_prompt or '图片描述控制在200字左右。'
 
-    def set_AiClient(self):
+    def set_AiClient(self, API_KEY):
         # for self.client.chat.completions.create
         raise NotImplementedError()
 
@@ -126,11 +126,11 @@ class GeminiAnalyzer(Analyzer):
     '''
     default_model = "gemini-2.5-flash"
 
-    def set_AiClient(self):
+    def set_AiClient(self, API_KEY):
         # https://ai.google.dev/gemini-api/docs/openai?hl=zh-cn
         # need GEMINI_API_KEY environment variable
         self.client = openai.OpenAI(
-            api_key=os.environ.get("GEMINI_API_KEY"),
+            api_key=API_KEY or os.environ.get("GEMINI_API_KEY"),
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
         )
 
@@ -154,10 +154,11 @@ class GenaiAnalyzer(Analyzer):
     '''
     default_model = "gemini-2.5-flash"
 
-    def set_AiClient(self):
+    def set_AiClient(self, API_KEY):
         # need GEMINI_API_KEY environment variable
         from google import genai
-        self.client = genai.Client()
+        self.client = genai.Client(
+            api_key=API_KEY or os.environ.get("GEMINI_API_KEY"))
 
     def create_response(self, image_data: bytes, mime_type: str):
         from google.genai import types
@@ -188,11 +189,11 @@ class ZhipuAnalyzer(Analyzer):
     # https://docs.bigmodel.cn/cn/guide/models/free/glm-4.6v-flash
     default_model = "glm-4.6v-flash"
 
-    def set_AiClient(self):
+    def set_AiClient(self, API_KEY):
         # need ZAI_API_KEY environment variable
         from zai import ZhipuAiClient
         self.client = ZhipuAiClient(
-            api_key=os.environ.get("ZAI_API_KEY")
+            api_key=API_KEY or os.environ.get("ZAI_API_KEY")
         )
 
     def _create_thinking_kwargs(self):
@@ -209,11 +210,11 @@ class DeepseekAnalyzer(Analyzer):
     '''
     default_model = "deepseek-chat"
 
-    def set_AiClient(self):
+    def set_AiClient(self, API_KEY):
         # https://api-docs.deepseek.com/zh-cn/
         # need XXX_API_KEY environment variable
         self.client = openai.OpenAI(
-            api_key=os.environ.get('DEEPSEEK_API_KEY'),
+            api_key=API_KEY or os.environ.get('DEEPSEEK_API_KEY'),
             base_url="https://api.deepseek.com")
 
 

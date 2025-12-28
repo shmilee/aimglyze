@@ -3,6 +3,7 @@ analyzer: "ZhipuAnalyzer"
 
 # AI 模型相关参数
 setting:
+  API_KEY: ""  # 推荐用环境变量设置
   model: "glm-4.6v-flash"
   max_tokens: 16384
   temperature: 1.0
