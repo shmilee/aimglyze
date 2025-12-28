@@ -35,7 +35,7 @@
                         <p>拖拽图片到此处，或点击选择文件</p>
                         <p class="file-types">支持格式：JPG, PNG, WEBP</p>
                         <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp" hidden>
-                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click(); event.stopPropagation()">
                             <i class="fas fa-folder-open"></i> 选择文件
                         </button>
                     </div>
